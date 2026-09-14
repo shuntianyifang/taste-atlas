@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "groups": {
+    "instruments": [
+      {"id":"piano","label":"钢琴","texts":["Music with an acoustic piano playing a melody.","The sound of piano keys playing music."]},
+      {"id":"strings","label":"弦乐群 / 小提琴","texts":["Orchestral music with bowed violins and strings.","Music featuring a string section playing sustained notes."]},
+      {"id":"cello","label":"大提琴 / 低弦","texts":["Music featuring a cello playing a deep bowed melody.","A low bowed string instrument playing music."]},
+      {"id":"brass","label":"铜管 / 小号","texts":["Music with trumpets and brass instruments.","A brass section playing a musical melody."]},
+      {"id":"horn","label":"圆号","texts":["An orchestral French horn playing a melody.","Music with sustained mellow French horns."]},
+      {"id":"flute","label":"长笛 / 笛类","texts":["Music with a flute playing a melody.","A clear airy flute tone in music."]},
+      {"id":"woodwind","label":"单簧管 / 双簧管等木管","texts":["Music with clarinet and oboe woodwind instruments.","A woodwind ensemble playing music."]},
+      {"id":"acoustic_guitar","label":"木吉他","texts":["Music with an acoustic guitar being strummed.","Music with plucked acoustic guitar strings."]},
+      {"id":"electric_guitar","label":"电吉他","texts":["Music featuring electric guitar riffs.","A distorted electric guitar playing music."]},
+      {"id":"bass","label":"贝斯 / 低音线","texts":["Music with an electric bass guitar playing a bass line.","A deep bass guitar groove in music."]},
+      {"id":"drums","label":"鼓组 / 打击乐","texts":["Music featuring drums and cymbals.","A rhythmic drum kit and percussion playing music."]},
+      {"id":"orchestral_percussion","label":"定音鼓 / 管弦打击乐","texts":["Orchestral music with timpani and booming bass drums.","Cinematic orchestral percussion and cymbal crashes."]},
+      {"id":"synth","label":"合成器 / 电子铺底","texts":["Music with electronic synthesizer sounds and pads.","An electronic synthesizer playing sustained atmospheric chords."]},
+      {"id":"organ","label":"管风琴","texts":["Music played on a pipe organ.","The sustained sound of an organ playing music."]},
+      {"id":"bells","label":"钟琴 / 铃铛 / 音乐盒","texts":["Music with bright glockenspiel bells and chimes.","The delicate chiming sound of a music box."]},
+      {"id":"harp","label":"竖琴","texts":["Music featuring plucked harp strings.","A harp playing gentle arpeggios."]},
+      {"id":"accordion","label":"手风琴","texts":["Music played with an accordion.","An accordion playing a melodic tune."]},
+      {"id":"choir","label":"合唱 / 人声铺底","texts":["Music featuring a choir singing in harmony.","Sustained choral voices accompanying music."]}
+    ],
+    "timbre": [
+      {"id":"warm","label":"柔和、温润","texts":["Music with a warm, mellow, rounded tone.","Soft and warm sounding music."]},
+      {"id":"bright","label":"明亮、清脆","texts":["Music with bright, crisp, sparkling tones.","Clear and brilliant sounding musical instruments."]},
+      {"id":"dark","label":"暗沉、厚重","texts":["Music with a dark, deep, heavy tone.","Low and resonant sounding music."]},
+      {"id":"airy","label":"轻盈、空气感","texts":["Music with light, airy, breathy tones.","Delicate floating sounds in the music."]},
+      {"id":"distorted","label":"粗粝、失真","texts":["Music with gritty distorted sounds.","Harsh buzzing and distorted musical tones."]},
+      {"id":"metallic","label":"金属、铿锵","texts":["Music with metallic ringing tones.","Clanging metallic sounds in music."]},
+      {"id":"plucked","label":"拨弦、颗粒感","texts":["Music with short plucked string sounds.","Crisp plucked musical notes with distinct attacks."]},
+      {"id":"sustained","label":"绵长、连贯","texts":["Music with smooth sustained flowing notes.","Long continuous musical tones blending together."]},
+      {"id":"reverberant","label":"空旷、混响感","texts":["Music with spacious reverberant echoes.","Music echoing in a large hall."]},
+      {"id":"dry","label":"贴近、干燥","texts":["Music recorded with a close dry intimate sound.","Close sounding instruments with little reverberation."]},
+      {"id":"acoustic","label":"原声、自然质感","texts":["Music played with natural acoustic instruments.","An organic acoustic instrumental sound."]},
+      {"id":"electronic","label":"电子、人工质感","texts":["Music with synthetic electronic tones.","Digitally synthesized electronic music sounds."]}
+    ],
+    "mood": [
+      {"id":"calm","label":"平静、舒缓","texts":["This music sounds calm, peaceful and relaxing.","Soothing tranquil music with a gentle mood."]},
+      {"id":"sad","label":"忧伤、感伤","texts":["This music sounds sad and melancholy.","Sorrowful emotional music with a mournful mood."]},
+      {"id":"nostalgic","label":"怀旧、追忆","texts":["This music sounds nostalgic and wistful.","Reflective music evoking memories and longing."]},
+      {"id":"solemn","label":"庄重、肃穆","texts":["This music sounds solemn and dignified.","Serious ceremonial music with a stately mood."]},
+      {"id":"epic","label":"史诗、壮阔","texts":["This music sounds epic, grand and majestic.","Powerful cinematic music with a sweeping heroic mood."]},
+      {"id":"tense","label":"紧张、悬疑","texts":["This music sounds tense and suspenseful.","Ominous music creating anticipation and tension."]},
+      {"id":"aggressive","label":"激烈、攻击性","texts":["This music sounds aggressive and intense.","Forceful angry music with an abrasive mood."]},
+      {"id":"energetic","label":"活跃、昂扬","texts":["This music sounds energetic and driving.","Lively music with an upbeat energetic mood."]},
+      {"id":"happy","label":"快乐、轻快","texts":["This music sounds happy and cheerful.","Joyful lighthearted playful music."]},
+      {"id":"hopeful","label":"希望、振奋","texts":["This music sounds hopeful and uplifting.","Inspiring optimistic music."]},
+      {"id":"dreamy","label":"梦幻、漂浮","texts":["This music sounds dreamy and ethereal.","Atmospheric floating music with a dreamlike mood."]},
+      {"id":"mysterious","label":"神秘、幽暗","texts":["This music sounds mysterious and eerie.","Enigmatic dark atmospheric music."]},
+      {"id":"romantic","label":"温柔、浪漫","texts":["This music sounds tender and romantic.","Affectionate intimate music with a loving mood."]}
+    ],
+    "vocals": [
+      {"id":"instrumental","label":"偏器乐、无人声","texts":["Instrumental music without singing or speech.","Only musical instruments are playing, with no voices."]},
+      {"id":"singing","label":"有演唱人声","texts":["Music with a singer singing lyrics.","A singing voice accompanied by musical instruments."]},
+      {"id":"choral","label":"有合唱或无词人声","texts":["Music with a wordless choir or vocal harmonies.","A choir of voices singing sustained notes."]},
+      {"id":"speech","label":"有说话或旁白","texts":["Music with spoken narration.","A person speaking over background music."]}
+    ],
+    "context": [
+      {"id":"orchestral","label":"管弦 / 电影配乐倾向","texts":["An orchestral cinematic instrumental soundtrack.","Music played by a symphony orchestra for a film score."]},
+      {"id":"ambient","label":"氛围 / 环境音乐倾向","texts":["Ambient atmospheric music with slowly evolving textures.","Minimal ambient music with sustained drones."]},
+      {"id":"rock","label":"摇滚 / 金属倾向","texts":["Rock music with electric guitars and drums.","Heavy rock or metal music."]},
+      {"id":"electronic","label":"电子音乐倾向","texts":["Electronic music with synthesizers and programmed beats.","An electronic instrumental music track."]},
+      {"id":"jazz","label":"爵士倾向","texts":["Jazz music played by a jazz band.","Instrumental jazz with improvisation."]},
+      {"id":"folk","label":"民谣 / 原声倾向","texts":["Acoustic folk music with traditional instruments.","A folk tune played on acoustic instruments."]},
+      {"id":"classical","label":"古典 / 室内乐倾向","texts":["Classical chamber music with acoustic instruments.","A classical instrumental performance."]},
+      {"id":"pop","label":"流行歌曲倾向","texts":["A pop song with vocals and accompaniment.","Contemporary pop music."]}
+    ]
+  }
+}
