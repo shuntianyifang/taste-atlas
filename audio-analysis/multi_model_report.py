@@ -1,5 +1,6 @@
 """Compare source/time coverage, never compare incompatible score scales."""
 import json
+from listening_summary import listening_summary
 from essentia_reporting import describe
 
 
@@ -41,6 +42,14 @@ def report(directory, engines):
         '| 模型 | 初始化秒数 |', '|---|---|']
     lines += [f'| {e} | {d["initialization_seconds"]:.2f} |' for e, d in data.items()]
     first = next(iter(data.values()))
+    overview = ['## 先读听感', '', '各模型分别提供意见，不以投票或分数大小决定真实听感。Essentia 的固定情绪／用途标签与 DEAM 曲线在后面的逐曲证据中保留，不改写成体验结论。', '']
+    for i, track in enumerate(first['tracks']):
+        overview += [f'## {track["file"]}：听感导读', '']
+        for engine in ('clap', 'muq'):
+            if engine in data:
+                overview += [f'### {engine.upper()} 的观察', '']
+                overview += listening_summary(data[engine]['tracks'][i]['semantic'], engine.upper())
+    lines = lines[:2] + overview + ['## 模型与技术证据', ''] + lines[2:]
     for i, track in enumerate(first['tracks']):
         lines += ['', f'## {track["file"]}', '', f'分析时长：{track["semantic"]["selected_seconds"]:.3f} 秒。', '',
                   '| 模型 | 乐器前三 | 情绪或主题前三 | 解码与推理秒数 |', '|---|---|---|---|']

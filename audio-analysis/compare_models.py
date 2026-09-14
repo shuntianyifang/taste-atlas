@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import subprocess
 import uuid
+from listening_summary import listening_summary
 
 ROOT = Path(__file__).resolve().parent
 GROUPS = {'instruments': '乐器', 'timbre': '音色', 'mood': '情绪', 'vocals': '人声', 'context': '编曲风格'}
@@ -37,6 +38,9 @@ def report(directory, engines=('clap', 'muq')):
             if abs(x['start_seconds'] - y['start_seconds']) > .001 or abs(x['end_seconds'] - y['end_seconds']) > .001:
                 raise ValueError('Window boundary mismatch')
         lines += [f'## {a["file"]}', '',
+            *listening_summary(sa, 'CLAP'),
+            *listening_summary(sb, 'MuQ'),
+            '### 技术证据', '',
             f'全曲 {sa["selected_seconds"]:.2f} 秒，{len(sa["windows"])} 个窗口。解码与分析耗时：CLAP {a["elapsed_seconds"]:.1f} 秒；MuQ {b["elapsed_seconds"]:.1f} 秒。', '',
             '| 维度 | CLAP 前三候选 | MuQ-MuLan 前三候选 | 窗口首选一致率 |', '|---|---|---|---|']
         for group, title in GROUPS.items():

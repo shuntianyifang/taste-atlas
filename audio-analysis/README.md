@@ -34,6 +34,10 @@ npm.cmd ci --prefix .reference-essentia-js --ignore-scripts --no-audit --no-fund
 
 ## 检查
 
+基础报告和三模型对照报告优先展示听感导读：整体氛围、声音质感、按原文件时间合并的复听区间，以及尚不能解释的部分。导读仅整理已完成的模型输出，不新增推理，不代表人工听辨或个人偏好。不同模型分开呈现；参数和原始候选保留在后面的技术证据中。时间区间供在本机播放器中定位，不会自动播放。
+
+导读边界测试：`./.venv/Scripts/python.exe -m unittest listening_selftest`。
+
 ```powershell
 ./.venv/Scripts/python.exe selftest.py
 ./.venv/Scripts/python.exe preview_selftest.py

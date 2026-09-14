@@ -1,5 +1,6 @@
 """Human-readable Chinese report and per-window semantic export."""
 import csv
+from listening_summary import listening_summary
 from pathlib import Path
 
 GROUPS = {'instruments': '乐器候选', 'timbre': '音色质感候选', 'mood': '情绪氛围候选',
@@ -20,7 +21,8 @@ def write_report(result, output):
     source_name = str(result['source']['file']).replace('\n', ' ').replace('\r', ' ')
     lines = ['# 音频分析报告', '', f'文件：{source_name}', '',
              f'范围：{scope}，{timestamp(start)}–{timestamp(start + duration)}，实际 {duration:.2f} 秒。', '',
-             '## 实测声学特征', '',
+             *listening_summary(result.get('semantic', {}), acoustic=result.get('acoustic_timbre')),
+             '## 技术证据：实测声学特征', '',
              f'- 估计节拍：{result["estimated_bpm"] if result["estimated_bpm"] is not None else "证据不足"} BPM（可能半速/倍速）。',
              f'- RMS：{result["rms_dbfs"]:.2f} dBFS。',
              '- 以下声学特征来自 22050 Hz 单声道；不能据此直接确定乐器和情绪。']

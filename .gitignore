@@ -38,6 +38,8 @@
 !/audio-analysis/ffmpeg.ps1
 !/audio-analysis/finish_deep_report.py
 !/audio-analysis/labels.json
+!/audio-analysis/listening_selftest.py
+!/audio-analysis/listening_summary.py
 !/audio-analysis/melodia.cjs
 !/audio-analysis/melody_analysis.py
 !/audio-analysis/melody_selftest.py
