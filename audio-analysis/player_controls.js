@@ -25,6 +25,10 @@
   addTrack('原混音', data.listening?.tracks.original.path || 'source.wav');
   for (const s of data.separation?.stems || []) addTrack(s.name + '（模型分离）', data.listening?.tracks[s.name]?.path || s.path);
   if (data.melody?.preview) addTrack('主旋律候选（合成正弦音）', data.melody.preview);
+  if (data.melody?.comparison) {
+    addTrack('原混音旋律对照（合成音）', data.melody.comparison.baseline_preview);
+    addTrack('伴奏分轨旋律对照（合成音，未确认）', data.melody.comparison.preview);
+  }
   function pause(message = '已暂停') {
     wantPlay = false; audio.pause();
     if (ready) position = clamp(audio.currentTime);
@@ -69,6 +73,11 @@
   }
   track.onchange = loadTrack;
   el('resume').onclick = resume; el('pause').onclick = () => pause();
+  // Other local report sections can request bounded playback through this controller.
+  document.addEventListener('taste-play-interval', event => {
+    const {start, end} = event.detail || {};
+    if (Number.isFinite(start) && Number.isFinite(end) && start >= offset && end > start && end <= data.range.end) jump(start, end);
+  });
   el('restart').onclick = () => { pause(); jump(offset, null, false); };
   seek.oninput = () => jump(Number(seek.value), null, wantPlay);
   audio.ontimeupdate = () => {

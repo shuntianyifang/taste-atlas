@@ -40,7 +40,7 @@ class Handler(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_POST(self):
-        if self.path!='/__listening_marks':self.send_error(404);return
+        if self.path not in ('/__listening_marks','/__fragment_feedback'):self.send_error(404);return
         # Same-origin loopback UI only; no filesystem path or arbitrary content accepted.
         if self.headers.get('Origin')!=f'http://127.0.0.1:{self.server.server_port}':
             self.send_error(403);return
@@ -48,12 +48,22 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             size=int(self.headers.get('Content-Length','0'))
             if not 0<size<=262144:raise ValueError('Invalid size')
-            value=validate_marks(json.loads(self.rfile.read(size)))
+            payload=json.loads(self.rfile.read(size))
+            if self.path=='/__fragment_feedback':
+                from fragment_report import validate_feedback, preference_pairs
+                value=validate_feedback(payload)
+                report_path=Path(self.directory)/'fragments.json'
+                if not report_path.is_file():raise ValueError('No fragment report served')
+                report=json.loads(report_path.read_text(encoding='utf8'))
+                if not report.get('completed'):raise ValueError('Incomplete fragment report')
+                preference_pairs(report,value)
+            else:value=validate_marks(payload)
         except (ValueError,TypeError,KeyError):self.send_error(400);return
         root=Path(self.directory).resolve();folder=root/'listening-exports'
         if not folder.resolve().is_relative_to(root):self.send_error(403);return
         folder.mkdir(exist_ok=True)
-        name='listening-marks-'+datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')+'-'+uuid.uuid4().hex[:8]+'.json'
+        prefix='fragment-feedback-' if self.path=='/__fragment_feedback' else 'listening-marks-'
+        name=prefix+datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')+'-'+uuid.uuid4().hex[:8]+'.json'
         with (folder/name).open('x',encoding='utf-8') as f:json.dump(value,f,ensure_ascii=False,indent=2,allow_nan=False)
         body=json.dumps({'url':'/listening-exports/'+name,'file':name}).encode()
         self.send_response(201);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)

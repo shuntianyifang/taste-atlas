@@ -32,9 +32,9 @@ class PreviewTests(unittest.TestCase):
                 self.assertEqual(get('/audio.wav',headers={'Range':'bytes=999999-'})[0],416)
                 body={'schema_version':1,'source_sha256':'a'*64,'range':{'start':80,'end':84,'duration':4},
                       'marks':[{'time':81.25,'label':'喜欢','track':'bass'}]}
-                def post(value,origin):
+                def post(value,origin,endpoint='/__listening_marks'):
                     conn=http.client.HTTPConnection('127.0.0.1',server.server_port,timeout=5)
-                    conn.request('POST','/__listening_marks',body=json.dumps(value).encode(),headers={'Origin':origin,'Content-Type':'application/json'})
+                    conn.request('POST',endpoint,body=json.dumps(value).encode(),headers={'Origin':origin,'Content-Type':'application/json'})
                     response=conn.getresponse();status=response.status;data=response.read();conn.close();return status,data
                 origin=f'http://127.0.0.1:{server.server_port}'
                 self.assertEqual(post(body,'https://example.com')[0],403)
@@ -45,6 +45,16 @@ class PreviewTests(unittest.TestCase):
                 self.assertEqual(status,200);self.assertEqual(json.loads(raw),body)
                 self.assertIn('attachment;',headers['Content-Disposition'])
                 self.assertEqual(json.loads((Path(folder)/'listening-exports'/saved['file']).read_text(encoding='utf8')),body)
+                from fragment_selftest import FragmentTests
+                feedback=FragmentTests().feedback()
+                report={'completed':True,'report_id':feedback['report_id'],'tracks':[{'fragments':[dict(feedback['feedback'][0],features=[])]}]}
+                (Path(folder)/'fragments.json').write_text(json.dumps(report),encoding='utf8')
+                self.assertEqual(post(feedback,'https://example.com','/__fragment_feedback')[0],403)
+                bad={**feedback,'report_id':'c'*64}
+                self.assertEqual(post(bad,origin,'/__fragment_feedback')[0],400)
+                status,raw=post(feedback,origin,'/__fragment_feedback');self.assertEqual(status,201)
+                saved=json.loads(raw)
+                self.assertEqual(json.loads(get(saved['url'])[2]),feedback)
             finally:server.shutdown();server.server_close();thread.join()
 
 

@@ -9,6 +9,20 @@ from deep_analysis import ROOT,write_json
 
 
 class MelodyTests(unittest.TestCase):
+    def test_tracking_diagnostics_do_not_call_density_accuracy(self):
+        from melody_analysis import tracking_diagnostics,compare_contours
+        x=np.full(1000,440.)
+        d=tracking_diagnostics(np.r_[np.zeros(500),x])
+        self.assertGreater(d['longest_missing_seconds'],1)
+        self.assertEqual(d['jumps_over_seven_semitones'],0)
+        comparison=compare_contours(x,x*2)
+        self.assertEqual(comparison['other']['candidate_fraction'],1)
+        self.assertEqual(comparison['same_pitch_within_half_semitone_fraction'],0)
+        self.assertEqual(comparison['near_octave_disagreement_fraction'],1)
+        self.assertIsNone(compare_contours(x,np.zeros_like(x))['same_pitch_within_half_semitone_fraction'])
+        with self.assertRaises(ValueError):compare_contours(x,x[:-1])
+        with self.assertRaises(ValueError):tracking_diagnostics([440,float('nan')])
+
     def test_tone_silence_and_determinism(self):
         sr=44100;t=np.arange(sr*3)/sr;signal=(.2*np.sin(2*np.pi*440*t)).astype('<f4')
         with tempfile.TemporaryDirectory(dir=ROOT/'selftest') as folder:

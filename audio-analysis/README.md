@@ -50,3 +50,40 @@ npm.cmd ci --prefix .reference-essentia-js --ignore-scripts --no-audit --no-fund
 ```
 
 模型测试须先准备对应模型，参考音频测试须先运行 setup_reference.py；合成测试产生的文件留在本机。上述命令是运行说明，本次发布整理未重新执行全部模型测试。
+
+## 片段级听感实验
+
+### 旋律跟踪能力诊断
+
+`melody_analysis.py` 会记录候选覆盖、最长漏检和相邻帧大跳次数；这些都不是准确率。对已完成分轨的深度分析目录，可运行：
+
+```powershell
+.venv-deep/Scripts/python.exe melody_analysis.py results/你的深度分析目录 --compare-other
+.venv-deep/Scripts/python.exe prepare_listening.py results/你的深度分析目录
+```
+
+该路径保持 MELODIA 默认参数，对原混音和校验后的 `other` 槽位各自推理，保存独立 CSV、原生置信值、等幅正弦试听及 `melody-comparison.md/json`。不自动用覆盖更多的分轨结果替换原混音轮廓。两条路径的一致率也不等于准确率；分轨仍可能串音，真实旋律需人工核对。运行会更新该目录的诊断与试听页，不改原音乐。
+
+### 使用片段反馈
+
+使用已有本地参考分析包（`manifest.json`、`measurements.json`、CLAP/MuQ JSON 和原声道解码副本），选择相邻窗口变化并生成试听、分层证据与反馈页。输出必须是新目录，不覆盖旧反馈：
+
+```powershell
+.venv-deep/Scripts/python.exe fragment_report.py build results/human-reference-20260914 results/fragment-experiment --tracks arcahv pinnacle --separate
+.venv/Scripts/python.exe serve_audio.py results/fragment-experiment --port 8877
+```
+
+打开 `http://127.0.0.1:8877/index.html`。每首最多 4 个相隔至少 30 秒的变化候选，按相邻 10 秒窗口的能量及频谱重心变化选择，并非精确事件检测。`--separate` 用已有隔离环境、锁定 HTDemucs 权重离线分轨；不指定时仍可分析混音证据。各槽位前后能量和模型候选分别显示，不把混音标签强加给分轨。试听副本和分析音频分开，分轨使用共同增益；质量须通过原混音对照确认。
+
+页面先听后展开解释。反馈分别记录喜欢／无感／不喜欢、声音层、原因、描述吻合度与分轨质量；未评价不会算作无感。草稿保留在当前浏览器；“保存片段反馈”通过同源回环接口写入 `listening-exports`，也提供 JSON 下载及复制。不会自动把用户反馈写进源码或生成固定偏好结论。
+
+反馈与来源指纹、片段范围、报告 ID 绑定。生成后续复听对照：
+
+```powershell
+.venv/Scripts/python.exe fragment_report.py feedback results/fragment-experiment/fragments.json results/fragment-experiment/listening-exports/你的反馈.json --output results/fragment-experiment/preference-questions.json
+.venv/Scripts/python.exe fragment_selftest.py
+```
+
+对照优先列出共同模型候选、但个人反应不同的片段。这只是复听问题；候选重合并非听感相同，更不证明偏好原因。CLI 输出也必须使用新文件名。
+
+`feedback` 命令可以连续传入两首歌的多个反馈 JSON，生成跨曲目对照；同一片段重复出现时，以命令中后面的文件为准。来源或范围不匹配的记录会被拒绝。
