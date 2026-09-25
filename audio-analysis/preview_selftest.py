@@ -46,6 +46,7 @@ class PreviewTests(unittest.TestCase):
                 self.assertIn('attachment;',headers['Content-Disposition'])
                 self.assertEqual(json.loads((Path(folder)/'listening-exports'/saved['file']).read_text(encoding='utf8')),body)
                 from fragment_selftest import FragmentTests
+                from fragment_report import validate_feedback, listening_clues
                 feedback=FragmentTests().feedback()
                 report={'completed':True,'report_id':feedback['report_id'],'tracks':[{'fragments':[dict(feedback['feedback'][0],features=[])]}]}
                 (Path(folder)/'fragments.json').write_text(json.dumps(report),encoding='utf8')
@@ -54,7 +55,17 @@ class PreviewTests(unittest.TestCase):
                 self.assertEqual(post(bad,origin,'/__fragment_feedback')[0],400)
                 status,raw=post(feedback,origin,'/__fragment_feedback');self.assertEqual(status,201)
                 saved=json.loads(raw)
-                self.assertEqual(json.loads(get(saved['url'])[2]),feedback)
+                self.assertEqual(json.loads(get(saved['url'])[2]),validate_feedback(feedback))
+                clip=report['tracks'][0]['fragments'][0]
+                clip.update(boundary=20,rms_delta_db=3,centroid_ratio=1)
+                (Path(folder)/'fragments.json').write_text(json.dumps(report),encoding='utf8')
+                feedback=validate_feedback(feedback)
+                feedback['feedback'][0]['evidence_reviews']={listening_clues(clip)[0]['id']:'确认'}
+                status,raw=post(feedback,origin,'/__fragment_feedback');self.assertEqual(status,201)
+                self.assertEqual(json.loads(get(json.loads(raw)['url'])[2]),feedback)
+                clip['rms_delta_db']=4
+                (Path(folder)/'fragments.json').write_text(json.dumps(report),encoding='utf8')
+                self.assertEqual(post(feedback,origin,'/__fragment_feedback')[0],400)
             finally:server.shutdown();server.server_close();thread.join()
 
 

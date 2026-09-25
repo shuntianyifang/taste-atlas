@@ -3,7 +3,7 @@ import copy
 import unittest
 import tempfile
 from pathlib import Path
-from fragment_report import select_changes, validate_feedback, preference_pairs, window_evidence, merge_feedback, write
+from fragment_report import select_changes, validate_feedback, preference_pairs, window_evidence, merge_feedback, write, listening_clues
 
 
 class FragmentTests(unittest.TestCase):
@@ -37,7 +37,29 @@ class FragmentTests(unittest.TestCase):
         data=self.feedback();b=copy.deepcopy(data['feedback'][0]);b.update(id='a-2',start=40,end=60,reaction='喜欢');data['feedback'].append(b)
         report=dict(report_id='b'*64,tracks=[dict(fragments=[dict(x,features=['muq:timbre:airy']) for x in data['feedback']])])
         result=preference_pairs(report,data)
-        self.assertEqual(len(result['pairs']),1);self.assertTrue(result['pairs'][0]['different_reactions'])
+        self.assertEqual(result['pairs'],[])  # Unreviewed model tags are not preference evidence.
+
+    def test_confirmed_clues_and_stale_reviews(self):
+        data=self.feedback();data['schema_version']=3
+        b=copy.deepcopy(data['feedback'][0]);b.update(id='a-2',start=40,end=60,reaction='喜欢');data['feedback'].append(b)
+        clips=[dict(x,boundary=x['start']+10,rms_delta_db=3,centroid_ratio=1) for x in data['feedback']]
+        report=dict(report_id=data['report_id'],tracks=[dict(fragments=clips)])
+        for row,c in zip(data['feedback'],clips):row['evidence_reviews']={listening_clues(c)[0]['id']:'确认'}
+        result=preference_pairs(report,data)
+        self.assertEqual(result['pairs'][0]['shared_features'],['energy:up'])
+        self.assertTrue(result['pairs'][0]['different_reactions'])
+        clue_id=next(iter(data['feedback'][1]['evidence_reviews']))
+        for verdict in ('否定','跳过','未核对'):
+            data['feedback'][1]['evidence_reviews'][clue_id]=verdict
+            self.assertEqual(preference_pairs(report,data)['pairs'],[])
+        clips[1]['rms_delta_db']=4
+        with self.assertRaises(ValueError):preference_pairs(report,data)
+
+    def test_legacy_reviews_not_promoted(self):
+        data=self.feedback();data['feedback'][0]['description_match']='符合'
+        self.assertEqual(validate_feedback(data)['feedback'][0]['evidence_reviews'],{})
+        data['schema_version']=3;data['feedback'][0]['evidence_reviews']={'a'*64:'喜欢'}
+        with self.assertRaises(ValueError):validate_feedback(data)
 
     def test_spacing_and_silence(self):
         def w(i,db):return dict(start=i*10,end=(i+1)*10,rms_dbfs=db,timbre=dict(median_spectral_centroid_hz=1000))

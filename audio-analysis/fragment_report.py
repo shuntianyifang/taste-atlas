@@ -53,8 +53,27 @@ def select_changes(windows, count=4):
     return sorted(selected, key=lambda c: c['start'])
 
 
+def listening_clues(fragment):
+    """Versioned listening questions, never an inferred reason for liking a passage."""
+    clues = []
+    db, ratio = fragment.get('rms_delta_db'), fragment.get('centroid_ratio')
+    if isinstance(db, (int, float)) and math.isfinite(db) and abs(db) >= 2:
+        clues.append(dict(feature='energy:up' if db > 0 else 'energy:down',
+            text='后半段听起来力度更强。' if db > 0 else '后半段听起来力度收回了。',
+            basis=f'后窗 RMS 相对前窗 {db:+.1f} dB；能量变化不等于主观响度或情绪。'))
+    if isinstance(ratio, (int, float)) and math.isfinite(ratio) and (ratio >= 1.2 or 0 < ratio <= 1/1.2):
+        clues.append(dict(feature='brightness:up' if ratio > 1 else 'brightness:down',
+            text='后半段听起来更亮、更尖一些。' if ratio > 1 else '后半段听起来更暗、更柔一些。',
+            basis=f'后窗频谱重心为前窗的 {ratio:.2f} 倍；配器、打击声等也可能影响测量。'))
+    for clue in clues:
+        clue.update(kind='sound_change', start=fragment['start'], boundary=fragment['boundary'], end=fragment['end'])
+        identity=dict(version=1, source=fragment['source_sha256'], **clue)
+        clue['id']=hashlib.sha256(json.dumps(identity,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
+    return clues
+
+
 def validate_feedback(value):
-    if not isinstance(value, dict) or value.get('schema_version') != 2:
+    if not isinstance(value, dict) or value.get('schema_version') not in (2, 3):
         raise ValueError('Invalid feedback schema')
     if not re.fullmatch(r'[0-9a-f]{64}', str(value.get('report_id', ''))):
         raise ValueError('Invalid report fingerprint')
@@ -81,8 +100,14 @@ def validate_feedback(value):
         for key in ('layer', 'reason'):
             if not isinstance(row.get(key), str) or len(row[key]) > 2000:
                 raise ValueError('Invalid feedback text')
-        clean.append({k: row[k] for k in ('id','source_sha256','start','end','reaction','description_match','separation_quality','layer','reason')})
-    return dict(schema_version=2, report_id=value['report_id'], feedback=clean)
+        item={k: row[k] for k in ('id','source_sha256','start','end','reaction','description_match','separation_quality','layer','reason')}
+        reviews=row.get('evidence_reviews', {}) if value['schema_version']==3 else {}
+        if not isinstance(reviews,dict) or len(reviews)>2 or any(
+            not re.fullmatch(r'[0-9a-f]{64}',str(k)) or v not in ('未核对','确认','否定','跳过') for k,v in reviews.items()):
+            raise ValueError('Invalid evidence reviews')
+        item['evidence_reviews']=dict(reviews)
+        clean.append(item)
+    return dict(schema_version=3, report_id=value['report_id'], feedback=clean)
 
 
 def preference_pairs(report, feedback):
@@ -91,22 +116,26 @@ def preference_pairs(report, feedback):
         raise ValueError('Feedback belongs to another report')
     fragments = {c['id']: c for t in report['tracks'] for c in t['fragments']}
     rated = {}
+    confirmed = {}
     for row in feedback['feedback']:
         c = fragments.get(row['id'])
         if c is None or any(row[k] != c[k] for k in ('source_sha256','start','end')):
             raise ValueError('Feedback source or range mismatch')
+        clues={x['id']:x for x in listening_clues(c)}
+        if set(row['evidence_reviews'])-set(clues):
+            raise ValueError('Evidence changed or belongs to another fragment')
+        confirmed[row['id']]={clues[k]['feature'] for k,v in row['evidence_reviews'].items() if v=='确认'}
         if row['reaction'] != '未评价':
             rated[row['id']] = row
     pairs = []
     ids = list(rated)
     for i, a in enumerate(ids):
         for b in ids[i+1:]:
-            x, y = fragments[a], fragments[b]
-            shared = sorted(set(x['features']) & set(y['features']))
+            shared = sorted(confirmed[a] & confirmed[b])
             if shared:
                 pairs.append(dict(a=a, b=b, shared_features=shared,
                     different_reactions=rated[a]['reaction'] != rated[b]['reaction'],
-                    question='相似线索下反应是否不同？比较声音层、上下文与自己的原因；共同标签不是偏好原因。'))
+                    question='你确认了相同的声音变化，再听两段时感受有什么不同？确认描述不等于确认喜欢的原因。'))
     pairs.sort(key=lambda p: (not p['different_reactions'], -len(p['shared_features']), p['a'], p['b']))
     return dict(rated_count=len(rated), status='待复听验证；不推断稳定偏好', pairs=pairs[:12])
 
@@ -117,7 +146,7 @@ def merge_feedback(report, files):
         value=validate_feedback(read(path))
         preference_pairs(report,value)  # Reject wrong source/range even for overwritten entries.
         for row in value['feedback']:rows[row['id']]=row
-    return dict(schema_version=2,report_id=report['report_id'],feedback=list(rows.values()))
+    return dict(schema_version=3,report_id=report['report_id'],feedback=list(rows.values()))
 
 
 def layer_hypothesis(layers):
@@ -263,7 +292,8 @@ def render(output, report):
         page=page.replace('<section><img src="overview.png" alt="自相似、结构变化和原始声道能量图"></section>','')
         # Hide legacy point markers: this experiment records interval feedback instead.
         page=page.replace('<section><h2>你的标记</h2>','<section hidden><h2>你的标记</h2>')
-        payload=json.dumps(dict(report_id=report['report_id'],track=t),ensure_ascii=False).replace('<','\\u003c')
+        view_track=dict(t,fragments=[dict(c,clues=listening_clues(c)) for c in t['fragments']])
+        payload=json.dumps(dict(report_id=report['report_id'],track=view_track),ensure_ascii=False).replace('<','\\u003c')
         extra='<section><p id="fragment-progress"></p><div id="fragment-cards"></div><div id="simple-playstatus"></div><button id="previous-fragment">上一段</button><button id="next-fragment">下一段（也可以跳过）</button></section><button id="save-feedback">保存这次记录</button><p id="feedback-status" role="status"></p><details><summary>导出备份</summary><textarea id="feedback-json" aria-label="反馈 JSON" rows="8" style="width:100%" readonly hidden></textarea><a id="feedback-download" hidden>下载反馈</a></details><details><summary>回头比较听过的片段</summary><div id="preference-pairs"></div></details>'
         page=page.replace('</html>',extra+'<script>const fragments='+payload+';</script><script>'+(ROOT/'fragment_controls.js').read_text(encoding='utf8')+'</script></html>')
         (folder/'player.html').write_text(page,encoding='utf8')
@@ -284,7 +314,7 @@ def render(output, report):
                 lines.append(f'- {e["engine"]} {e["start"]:.0f}–{e["end"]:.0f}s 候选：'+'；'.join(groups))
             if c['separation']['status']=='completed':
                 lines += ['',f'[原混音／分轨对照]({t["slug"]}/{c["separation"]["player"]})。分轨质量未人工核对；槽位名不证明声音身份。','']
-            lines += ['','反馈：未评价；原因：待填写。','']
+            lines += ['','反馈保存在浏览器草稿或 listening-exports；本静态报告不汇总实际评价。','']
     (output/'report.md').write_text('\n'.join(lines),encoding='utf8')
     (output/'index.html').write_text('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>片段听感实验</title><style>body{font:18px system-ui;max-width:900px;margin:60px auto;padding:24px}li{margin:24px}</style><h1>片段听感实验</h1><p>先听原混音，记录感受，再展开解释及分轨核对。</p><ul>'+''.join(links)+'</ul><p>所有音频与反馈留在本机。模型相似度不是准确率或用户偏好。</p></html>',encoding='utf8')
 
@@ -294,9 +324,14 @@ if __name__=='__main__':
     sub=p.add_subparsers(dest='command',required=True)
     b=sub.add_parser('build');b.add_argument('bundle',type=Path);b.add_argument('output',type=Path)
     b.add_argument('--tracks',nargs='+',default=['arcahv','pinnacle']);b.add_argument('--separate',action='store_true')
+    r=sub.add_parser('render');r.add_argument('output',type=Path)
     f=sub.add_parser('feedback');f.add_argument('report',type=Path);f.add_argument('feedback',type=Path,nargs='+');f.add_argument('--output',type=Path,required=True)
     args=p.parse_args()
     if args.command=='build':build(args.bundle,args.output,args.tracks,args.separate)
+    elif args.command=='render':
+        report=read(args.output/'fragments.json')
+        if not report.get('completed'):raise ValueError('Incomplete report')
+        render(args.output,report)
     else:
         report=read(args.report)
         result=preference_pairs(report,merge_feedback(report,args.feedback))

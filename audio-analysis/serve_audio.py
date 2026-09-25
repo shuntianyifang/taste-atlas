@@ -40,7 +40,7 @@ class Handler(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_POST(self):
-        if self.path not in ('/__listening_marks','/__fragment_feedback'):self.send_error(404);return
+        if self.path not in ('/__listening_marks','/__fragment_feedback','/__context_feedback'):self.send_error(404);return
         # Same-origin loopback UI only; no filesystem path or arbitrary content accepted.
         if self.headers.get('Origin')!=f'http://127.0.0.1:{self.server.server_port}':
             self.send_error(403);return
@@ -49,7 +49,12 @@ class Handler(SimpleHTTPRequestHandler):
             size=int(self.headers.get('Content-Length','0'))
             if not 0<size<=262144:raise ValueError('Invalid size')
             payload=json.loads(self.rfile.read(size))
-            if self.path=='/__fragment_feedback':
+            if self.path=='/__context_feedback':
+                from context_report import validate_feedback, load_served_report
+                if not isinstance(payload,dict):raise ValueError('Invalid payload')
+                report=load_served_report(self.directory,payload.get('report_id'))
+                value=validate_feedback(payload,report)
+            elif self.path=='/__fragment_feedback':
                 from fragment_report import validate_feedback, preference_pairs
                 value=validate_feedback(payload)
                 report_path=Path(self.directory)/'fragments.json'
@@ -58,11 +63,11 @@ class Handler(SimpleHTTPRequestHandler):
                 if not report.get('completed'):raise ValueError('Incomplete fragment report')
                 preference_pairs(report,value)
             else:value=validate_marks(payload)
-        except (ValueError,TypeError,KeyError):self.send_error(400);return
+        except (ValueError,TypeError,KeyError,OSError):self.send_error(400);return
         root=Path(self.directory).resolve();folder=root/'listening-exports'
         if not folder.resolve().is_relative_to(root):self.send_error(403);return
         folder.mkdir(exist_ok=True)
-        prefix='fragment-feedback-' if self.path=='/__fragment_feedback' else 'listening-marks-'
+        prefix={'/__fragment_feedback':'fragment-feedback-','/__context_feedback':'context-feedback-','/__listening_marks':'listening-marks-'}[self.path]
         name=prefix+datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')+'-'+uuid.uuid4().hex[:8]+'.json'
         with (folder/name).open('x',encoding='utf-8') as f:json.dump(value,f,ensure_ascii=False,indent=2,allow_nan=False)
         body=json.dumps({'url':'/listening-exports/'+name,'file':name}).encode()
